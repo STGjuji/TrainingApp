@@ -9,6 +9,7 @@ import WeightScreen from './screens/WeightScreen';
 import ProgressScreen from './screens/ProgressScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import { SafeAreaView, StyleSheet } from 'react-native';
+import { theme } from './theme';
 
 const Tab = createBottomTabNavigator();
 
@@ -19,11 +20,12 @@ export default function App() {
         <Tab.Navigator
           screenOptions={({ route }) => ({
             headerShown: false,
-            tabBarActiveTintColor: '#5568fe',
-            tabBarInactiveTintColor: '#8b96b2',
+            tabBarActiveTintColor: theme.colors.primary,
+            tabBarInactiveTintColor: theme.colors.textMuted,
             tabBarStyle: {
-              backgroundColor: '#fff',
-              borderTopColor: '#e5e7eb',
+              backgroundColor: theme.colors.surface,
+              borderTopColor: theme.colors.border,
+              borderTopWidth: 1,
               height: 70,
               paddingBottom: 8,
             },
@@ -48,7 +50,7 @@ export default function App() {
           <Tab.Screen name="Settings" component={SettingsScreen} />
         </Tab.Navigator>
       </NavigationContainer>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
     </SafeAreaView>
   );
 }
@@ -56,5 +58,6 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: theme.colors.background,
   },
 });

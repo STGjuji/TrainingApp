@@ -18,7 +18,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   return (
     <SafeAreaView style={styles.page}>
       <ScrollView contentContainerStyle={styles.content}>
-        <AppHeader title="Training App" subtitle="Build better workouts, meals, and progress plans." />
+        <AppHeader title="Training App" subtitle="" />
         <Text style={styles.description}>Tap a card to open any tracker or settings screen.</Text>
         <View style={styles.cardGrid}>
           {cards.map((item) => (

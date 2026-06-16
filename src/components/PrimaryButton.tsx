@@ -17,15 +17,23 @@ export default function PrimaryButton({ label, onPress }: PrimaryButtonProps) {
 const styles = StyleSheet.create({
   button: {
     backgroundColor: theme.colors.primary,
-    paddingVertical: theme.spacing.small,
+    paddingVertical: theme.spacing.small + 2,
     borderRadius: theme.radius,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: theme.spacing.small,
+    marginTop: theme.spacing.medium,
+    marginBottom: theme.spacing.large,
+    marginHorizontal: 0,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 6,
   },
   label: {
     color: '#fff',
     fontWeight: '700',
     fontSize: 16,
+    letterSpacing: 0.5,
   },
 });

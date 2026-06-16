@@ -1,9 +1,11 @@
 ﻿import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity } from 'react-native';
 import { supabase } from '../lib/supabase';
 import AppHeader from '../components/AppHeader';
 import Card from '../components/Card';
 import PrimaryButton from '../components/PrimaryButton';
+import ModalForm from '../components/ModalForm';
+import FormInput from '../components/FormInput';
 import { theme } from '../theme';
 import { formatDate } from '../utils/format';
 
@@ -17,6 +19,11 @@ interface Workout {
 
 export default function WorkoutsScreen() {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [title, setTitle] = useState('');
+  const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     loadWorkouts();
@@ -29,6 +36,36 @@ export default function WorkoutsScreen() {
       return;
     }
     setWorkouts(data ?? []);
+  }
+
+  async function addWorkout() {
+    if (!title.trim()) {
+      setErrorMessage('Please enter a workout title.');
+      return;
+    }
+    setLoading(true);
+    setErrorMessage(null);
+
+    const { data, error } = await supabase.from('workouts').insert({
+      title,
+      notes: notes || null,
+      scheduled_at: new Date().toISOString(),
+      completed: false,
+    }).select();
+
+    setLoading(false);
+
+    if (error) {
+      console.error('Supabase insert error:', error);
+      setErrorMessage(error.message || 'Unable to save workout.');
+      return;
+    }
+
+    setTitle('');
+    setNotes('');
+    setErrorMessage(null);
+    setModalVisible(false);
+    loadWorkouts();
   }
 
   return (
@@ -51,10 +88,24 @@ export default function WorkoutsScreen() {
               <Text style={styles.workoutDate}>{formatDate(item.scheduled_at)}</Text>
             </Card>
           )}
-          ListEmptyComponent={<Text style={styles.empty}>No workouts logged yet. Add your first workout in Settings.</Text>}
+          ListEmptyComponent={<Text style={styles.empty}>No workouts logged yet. Add your first workout to start.</Text>}
         />
-        <PrimaryButton label="Refresh workouts" onPress={loadWorkouts} />
+        <PrimaryButton label="Add Workout" onPress={() => setModalVisible(true)} />
       </View>
+      <ModalForm
+        visible={modalVisible}
+        title="Add Workout"
+        onClose={() => {
+          setModalVisible(false);
+          setErrorMessage(null);
+        }}
+        onSubmit={addWorkout}
+      >
+        <FormInput label="Workout Title" placeholder="e.g., 30 min run" value={title} onChangeText={setTitle} />
+        <FormInput label="Notes" placeholder="Add details here" value={notes} onChangeText={setNotes} multiline numberOfLines={4} />
+        {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+        <Text style={styles.helperText}>{loading ? 'Saving workout…' : 'Tap Save to add this workout.'}</Text>
+      </ModalForm>
     </SafeAreaView>
   );
 }
@@ -71,4 +122,6 @@ const styles = StyleSheet.create({
   completed: { color: theme.colors.success },
   pending: { color: theme.colors.accent },
   empty: { textAlign: 'center', marginTop: theme.spacing.large, color: theme.colors.textMuted },
+  errorText: { color: theme.colors.error, marginTop: theme.spacing.medium, fontWeight: '700' },
+  helperText: { color: theme.colors.textMuted, marginTop: theme.spacing.small, fontSize: 13 },
 });

@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import AppHeader from '../components/AppHeader';
 import Card from '../components/Card';
 import PrimaryButton from '../components/PrimaryButton';
+import ModalForm from '../components/ModalForm';
+import FormInput from '../components/FormInput';
 import { theme } from '../theme';
 
 interface WeightEntry {
@@ -15,6 +17,10 @@ interface WeightEntry {
 
 export default function WeightScreen() {
   const [entries, setEntries] = useState<WeightEntry[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [kilos, setKilos] = useState('');
+  const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadEntries();
@@ -27,6 +33,25 @@ export default function WeightScreen() {
       return;
     }
     setEntries(data ?? []);
+  }
+
+  async function addWeight() {
+    if (!kilos.trim()) return;
+    setLoading(true);
+    const { error } = await supabase.from('weight_entries').insert({
+      kilos: parseFloat(kilos),
+      recorded_at: new Date().toISOString(),
+      notes: notes || null,
+    });
+    setLoading(false);
+    if (error) {
+      console.error(error);
+      return;
+    }
+    setKilos('');
+    setNotes('');
+    setModalVisible(false);
+    loadEntries();
   }
 
   return (
@@ -46,8 +71,17 @@ export default function WeightScreen() {
           )}
           ListEmptyComponent={<Text style={styles.empty}>No weight entries yet. Add your first entry to start tracking.</Text>}
         />
-        <PrimaryButton label="Refresh weight" onPress={loadEntries} />
+        <PrimaryButton label="Add Weight" onPress={() => setModalVisible(true)} />
       </View>
+      <ModalForm
+        visible={modalVisible}
+        title="Log Weight"
+        onClose={() => setModalVisible(false)}
+        onSubmit={addWeight}
+      >
+        <FormInput label="Weight (kg)" placeholder="e.g., 75.5" value={kilos} onChangeText={setKilos} keyboardType="numeric" />
+        <FormInput label="Notes" placeholder="How are you feeling?" value={notes} onChangeText={setNotes} multiline numberOfLines={4} />
+      </ModalForm>
     </SafeAreaView>
   );
 }

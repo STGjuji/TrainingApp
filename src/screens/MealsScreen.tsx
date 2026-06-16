@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase';
 import AppHeader from '../components/AppHeader';
 import Card from '../components/Card';
 import PrimaryButton from '../components/PrimaryButton';
+import ModalForm from '../components/ModalForm';
+import FormInput from '../components/FormInput';
 import { theme } from '../theme';
 import { formatDate } from '../utils/format';
 
@@ -17,6 +19,11 @@ interface Meal {
 
 export default function MealsScreen() {
   const [meals, setMeals] = useState<Meal[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [name, setName] = useState('');
+  const [calories, setCalories] = useState('');
+  const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadMeals();
@@ -29,6 +36,27 @@ export default function MealsScreen() {
       return;
     }
     setMeals(data ?? []);
+  }
+
+  async function addMeal() {
+    if (!name.trim()) return;
+    setLoading(true);
+    const { error } = await supabase.from('meals').insert({
+      name,
+      calories: calories ? parseInt(calories) : null,
+      notes: notes || null,
+      eaten_at: new Date().toISOString(),
+    });
+    setLoading(false);
+    if (error) {
+      console.error(error);
+      return;
+    }
+    setName('');
+    setCalories('');
+    setNotes('');
+    setModalVisible(false);
+    loadMeals();
   }
 
   return (
@@ -51,8 +79,18 @@ export default function MealsScreen() {
           )}
           ListEmptyComponent={<Text style={styles.empty}>No meals logged yet. Add something tasty today.</Text>}
         />
-        <PrimaryButton label="Refresh meals" onPress={loadMeals} />
+        <PrimaryButton label="Add Meal" onPress={() => setModalVisible(true)} />
       </View>
+      <ModalForm
+        visible={modalVisible}
+        title="Log Meal"
+        onClose={() => setModalVisible(false)}
+        onSubmit={addMeal}
+      >
+        <FormInput label="Meal Name" placeholder="e.g., Chicken with rice" value={name} onChangeText={setName} />
+        <FormInput label="Calories (optional)" placeholder="e.g., 500" value={calories} onChangeText={setCalories} keyboardType="numeric" />
+        <FormInput label="Notes" placeholder="Add details" value={notes} onChangeText={setNotes} multiline numberOfLines={4} />
+      </ModalForm>
     </SafeAreaView>
   );
 }

@@ -26,10 +26,12 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: '800',
     color: theme.colors.text,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    marginTop: 8,
+    marginTop: 10,
     color: theme.colors.textMuted,
-    fontSize: 16,
+    fontSize: 15,
+    lineHeight: 22,
   },
 });
