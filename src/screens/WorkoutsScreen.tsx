@@ -22,18 +22,20 @@ interface Workout {
 export default function WorkoutsScreen() {
   const [calendarCollapsed, setCalendarCollapsed] = useState(false);
   const [useSystemPicker, setUseSystemPicker] = useState(false);
-  const [showNativePicker, setShowNativePicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState<string>(new Date().toISOString());
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
-  const [scheduledAt, setScheduledAt] = useState<string>(new Date().toISOString());
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
 
   useEffect(() => {
     loadWorkouts();
@@ -80,7 +82,44 @@ export default function WorkoutsScreen() {
     return weekNo;
   }
 
-  async function addWorkout() {
+  useEffect(() => {
+    setCalendarMonth(new Date(scheduledAt));
+  }, [scheduledAt]);
+
+  const calendarDays = useMemo(() => {
+    const month = calendarMonth.getMonth();
+    const year = calendarMonth.getFullYear();
+    const firstDayOfMonth = new Date(year, month, 1);
+    const weekday = firstDayOfMonth.getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const grid: (Date | null)[] = [];
+
+    for (let i = 0; i < weekday; i += 1) {
+      grid.push(null);
+    }
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      grid.push(new Date(year, month, day));
+    }
+    while (grid.length % 7 !== 0) {
+      grid.push(null);
+    }
+    return grid;
+  }, [calendarMonth]);
+
+  function changeCalendarMonth(delta: number) {
+    setCalendarMonth((prev) => {
+      const next = new Date(prev);
+      next.setMonth(next.getMonth() + delta);
+      return next;
+    });
+  }
+
+  function selectCalendarDate(date: Date) {
+    setScheduledAt(date.toISOString());
+    setShowDatePicker(false);
+  }
+
+  async function saveWorkout() {
     if (!title.trim()) {
       setErrorMessage('Please enter a workout title.');
       return;
@@ -88,26 +127,44 @@ export default function WorkoutsScreen() {
     setLoading(true);
     setErrorMessage(null);
 
-    const { data, error } = await supabase.from('workouts').insert({
+    const payload = {
       title,
       notes: notes || null,
       scheduled_at: scheduledAt,
-      completed: false,
-    }).select();
+    };
 
+    let response;
+    if (editingWorkoutId) {
+      response = await supabase.from('workouts').update(payload).eq('id', editingWorkoutId).select();
+    } else {
+      response = await supabase.from('workouts').insert({ ...payload, completed: false }).select();
+    }
+
+    const { data, error } = response;
     setLoading(false);
 
     if (error) {
-      console.error('Supabase insert error:', error);
+      console.error('Supabase save error:', error);
       setErrorMessage(error.message || 'Unable to save workout.');
       return;
     }
 
     setTitle('');
     setNotes('');
+    setScheduledAt(new Date().toISOString());
+    setEditingWorkoutId(null);
     setErrorMessage(null);
     setModalVisible(false);
     loadWorkouts();
+  }
+
+  function openEditWorkout(workout: Workout) {
+    setTitle(workout.title);
+    setNotes(workout.notes ?? '');
+    setScheduledAt(workout.scheduled_at ?? new Date().toISOString());
+    setEditingWorkoutId(workout.id);
+    setErrorMessage(null);
+    setModalVisible(true);
   }
 
   async function toggleCompleted(id: string, current: boolean) {
@@ -130,6 +187,26 @@ export default function WorkoutsScreen() {
     } catch (err) {
       console.error(err);
       setErrorMessage('Unexpected error updating workout.');
+    }
+  }
+
+  async function deleteWorkout(id: string) {
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('workouts').delete().eq('id', id);
+      setLoading(false);
+      if (error) {
+        console.error('Supabase delete error:', error);
+        setErrorMessage(error.message || 'Unable to delete workout.');
+        return;
+      }
+      setWorkouts((prev) => prev.filter((w) => w.id !== id));
+      setSuccessMessage('Workout deleted');
+      setTimeout(() => setSuccessMessage(null), 2500);
+    } catch (err) {
+      setLoading(false);
+      console.error(err);
+      setErrorMessage('Unexpected error deleting workout.');
     }
   }
 
@@ -218,6 +295,18 @@ export default function WorkoutsScreen() {
                 </View>
                 <View style={styles.headerRight}>
                   <TouchableOpacity
+                    onPress={() => openEditWorkout(item)}
+                    style={styles.editButton}
+                  >
+                    <Text style={styles.editButtonText}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => deleteWorkout(item.id)}
+                    style={styles.deleteButton}
+                  >
+                    <Text style={styles.deleteButtonText}>Delete</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
                     onPress={() => toggleCompleted(item.id, item.completed)}
                     style={[styles.confirmButton, item.completed && styles.confirmed]}
                   >
@@ -244,72 +333,62 @@ export default function WorkoutsScreen() {
       </ScrollView>
       <ModalForm
         visible={modalVisible}
-        title="Add Workout"
+        title={editingWorkoutId ? 'Edit Workout' : 'Add Workout'}
         onClose={() => {
           setModalVisible(false);
           setErrorMessage(null);
+          setEditingWorkoutId(null);
         }}
-        onSubmit={addWorkout}
+        onSubmit={saveWorkout}
       >
         <FormInput label="Workout Title" placeholder="e.g., 30 min run" value={title} onChangeText={setTitle} />
         <FormInput label="Notes" placeholder="Add details here" value={notes} onChangeText={setNotes} multiline numberOfLines={4} />
         <View style={styles.datePickerRow}>
-          <TouchableOpacity onPress={() => setScheduledAt(new Date(new Date(scheduledAt).getTime() - 24 * 60 * 60 * 1000).toISOString())} style={styles.dateNavButton}>
-            <Text style={styles.dateNavText}>‹</Text>
-          </TouchableOpacity>
-          <View style={{ alignItems: 'center' }}>
+          <View>
+            <Text style={styles.datePickerLabel}>Scheduled date</Text>
             <Text style={styles.selectedDateText}>{new Date(scheduledAt).toLocaleDateString()}</Text>
             <Text style={styles.weekInfoSmall}>Week {getWeekNumber(new Date(scheduledAt))}</Text>
           </View>
-          <TouchableOpacity onPress={() => setScheduledAt(new Date(new Date(scheduledAt).getTime() + 24 * 60 * 60 * 1000).toISOString())} style={styles.dateNavButton}>
-            <Text style={styles.dateNavText}>›</Text>
+          <TouchableOpacity
+            style={styles.datePickerButton}
+            onPress={() => setShowDatePicker((prev) => !prev)}
+          >
+            <Text style={styles.datePickerButtonText}>{showDatePicker ? 'Hide calendar' : 'Pick date'}</Text>
           </TouchableOpacity>
         </View>
-        {useSystemPicker ? (
-          <View style={{ marginTop: 8 }}>
-            <Button title="Pick Date" onPress={async () => {
-              // Try to render a native picker if available; otherwise fallback to prompt (web)
-              if (Platform.OS === 'web') {
-                const input = prompt('Enter date (YYYY-MM-DD)', scheduledAt.slice(0,10));
-                if (input) setScheduledAt(new Date(input).toISOString());
-                return;
-              }
-              try {
-                // Use eval('require') to avoid bundlers resolving this optional native module at build time
-                // eslint-disable-next-line no-eval,@typescript-eslint/no-var-requires
-                const r = eval('require');
-                const DateTimePicker = r('@react-native-community/datetimepicker').default;
-                setShowNativePicker(true);
-              } catch (e) {
-                // fallback
-                alert('Native date picker not installed. Install @react-native-community/datetimepicker to use system picker.');
-              }
-            }} />
-            {showNativePicker ? (
-              // Render inline DateTimePicker when available
-              // eslint-disable-next-line @typescript-eslint/no-var-requires
-              (() => {
-                try {
-                  // Use eval('require') to avoid bundler static analysis for optional native module
-                  // eslint-disable-next-line no-eval,@typescript-eslint/no-var-requires
-                  const r = eval('require');
-                  const Picker = r('@react-native-community/datetimepicker').default;
-                  return (
-                    <Picker
-                      value={new Date(scheduledAt)}
-                      mode="date"
-                      display="default"
-                      onChange={(event: any, date?: Date) => {
-                        setShowNativePicker(false);
-                        if (date) setScheduledAt(date.toISOString());
-                      }}
-                    />
-                  );
-                } catch (err) {
-                  return null;
-                }
-              })()
-            ) : null}
+        {showDatePicker ? (
+          <View style={styles.calendarPicker}>
+            <View style={styles.calendarPickerHeader}>
+              <TouchableOpacity onPress={() => changeCalendarMonth(-1)} style={styles.calendarNavButton}>
+                <Text style={styles.calendarNavText}>‹</Text>
+              </TouchableOpacity>
+              <Text style={styles.calendarMonthLabel}>{calendarMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}</Text>
+              <TouchableOpacity onPress={() => changeCalendarMonth(1)} style={styles.calendarNavButton}>
+                <Text style={styles.calendarNavText}>›</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.calendarWeekRow}>
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label) => (
+                <Text key={label} style={styles.calendarWeekDay}>{label}</Text>
+              ))}
+            </View>
+            <View style={styles.calendarGrid}>
+              {calendarDays.map((date, index) => {
+                const isSelected = date?.toDateString() === new Date(scheduledAt).toDateString();
+                return (
+                  <TouchableOpacity
+                    key={`${index}-${date?.toISOString() ?? 'empty'}`}
+                    style={[styles.calendarDay, date && isSelected && styles.calendarDaySelected]}
+                    disabled={!date}
+                    onPress={() => date && selectCalendarDate(date)}
+                  >
+                    <Text style={[styles.calendarDayText, date && isSelected && styles.calendarDayTextSelected]}>
+                      {date ? date.getDate() : ''}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         ) : null}
         {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
@@ -336,13 +415,17 @@ const styles = StyleSheet.create({
   selectionCheckboxOn: { backgroundColor: theme.colors.primary },
   selectionCheckboxText: { color: '#fff', fontWeight: '800' },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: theme.spacing.small },
-  headerRight: { flexDirection: 'row', alignItems: 'center' },
-  confirmButton: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: theme.radius / 2, backgroundColor: theme.colors.border, marginRight: theme.spacing.small },
-  confirmText: { color: theme.colors.textMuted, fontWeight: '700' },
+  headerRight: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end' },
+  editButton: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: theme.radius / 2, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.primaryLight, marginRight: theme.spacing.small },
+  editButtonText: { color: theme.colors.text, fontWeight: '700' },
+  deleteButton: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: theme.radius / 2, backgroundColor: theme.colors.error, marginRight: theme.spacing.small },
+  deleteButtonText: { color: '#fff', fontWeight: '700' },
+  confirmButton: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: theme.radius / 2, backgroundColor: theme.colors.primary, marginRight: theme.spacing.small },
+  confirmText: { color: '#fff', fontWeight: '700' },
   confirmed: { backgroundColor: theme.colors.success },
   confirmedText: { color: '#062b17' },
   workoutTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.text, flex: 1, marginRight: theme.spacing.small, flexWrap: 'wrap' },
-  workoutMeta: { color: theme.colors.textMuted, marginBottom: theme.spacing.small, lineHeight: 20 },
+  workoutMeta: { color: theme.colors.text, marginBottom: theme.spacing.small, lineHeight: 20 },
   workoutDate: { color: theme.colors.secondary, marginTop: theme.spacing.small, fontWeight: '600', fontSize: 13 },
   status: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, paddingVertical: 4, paddingHorizontal: 8, borderRadius: theme.radius / 2 },
   completed: { backgroundColor: '#163f2b', color: theme.colors.success },
@@ -350,14 +433,27 @@ const styles = StyleSheet.create({
   empty: { textAlign: 'center', marginTop: theme.spacing.large, color: theme.colors.textMuted, paddingHorizontal: theme.spacing.medium },
   dateSectionTitle: { color: theme.colors.text, fontSize: 17, fontWeight: '800', marginBottom: theme.spacing.small, marginTop: theme.spacing.small },
   datePickerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: theme.spacing.medium, marginBottom: theme.spacing.medium, backgroundColor: theme.colors.surface, borderRadius: theme.radius, padding: theme.spacing.small },
-  dateNavButton: { padding: theme.spacing.small, backgroundColor: theme.colors.border, borderRadius: theme.radius },
-  dateNavText: { color: theme.colors.text, fontSize: 18, fontWeight: '700' },
+  datePickerLabel: { color: theme.colors.textMuted, fontSize: 12, marginBottom: 4 },
+  datePickerButton: { paddingVertical: 10, paddingHorizontal: 16, backgroundColor: theme.colors.primary, borderRadius: theme.radius / 2 },
+  datePickerButtonText: { color: '#fff', fontWeight: '700' },
   selectedDateText: { color: theme.colors.text, fontSize: 15, fontWeight: '700' },
   calendarHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.small },
   calendarRowLeft: { flexDirection: 'row', alignItems: 'center' },
   calendarLabel: { color: theme.colors.text, fontWeight: '800', fontSize: 16, marginRight: theme.spacing.medium },
   weekInfo: { color: theme.colors.textMuted, fontSize: 13, fontWeight: '700' },
   weekInfoSmall: { color: theme.colors.textMuted, fontSize: 12 },
+  calendarPicker: { backgroundColor: theme.colors.surface, borderRadius: theme.radius, padding: theme.spacing.small, marginTop: theme.spacing.small },
+  calendarPickerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.small },
+  calendarNavButton: { padding: 8, backgroundColor: theme.colors.border, borderRadius: theme.radius / 2 },
+  calendarNavText: { color: theme.colors.text, fontSize: 16, fontWeight: '700' },
+  calendarMonthLabel: { color: theme.colors.text, fontWeight: '800' },
+  calendarWeekRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: theme.spacing.small },
+  calendarWeekDay: { width: 32, textAlign: 'center', color: theme.colors.textMuted, fontSize: 12, fontWeight: '700' },
+  calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  calendarDay: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 8, backgroundColor: theme.colors.border },
+  calendarDaySelected: { backgroundColor: theme.colors.primary },
+  calendarDayText: { color: theme.colors.text, fontWeight: '700' },
+  calendarDayTextSelected: { color: '#fff' },
   calendarToggles: { flexDirection: 'row', alignItems: 'center' },
   toggleLabel: { color: theme.colors.textMuted, fontSize: 12, marginRight: 6 },
   errorText: { color: theme.colors.error, marginTop: theme.spacing.medium, fontWeight: '700' },
