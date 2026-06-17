@@ -90,7 +90,7 @@ export default function WorkoutsScreen() {
     const month = calendarMonth.getMonth();
     const year = calendarMonth.getFullYear();
     const firstDayOfMonth = new Date(year, month, 1);
-    const weekday = firstDayOfMonth.getDay();
+    const weekday = (firstDayOfMonth.getDay() + 6) % 7; // Monday-first week
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const grid: (Date | null)[] = [];
 
@@ -364,7 +364,7 @@ export default function WorkoutsScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.calendarWeekRow}>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label) => (
+              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((label) => (
                 <Text key={label} style={styles.calendarWeekDay}>{label}</Text>
               ))}
             </View>

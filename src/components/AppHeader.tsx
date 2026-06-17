@@ -17,21 +17,23 @@ export default function AppHeader({ title, subtitle }: AppHeaderProps) {
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: theme.spacing.medium,
-    borderBottomWidth: 1,
+    paddingBottom: theme.spacing.large,
+    borderBottomWidth: 0,
     borderBottomColor: theme.colors.border,
-    marginBottom: theme.spacing.medium,
+    marginBottom: theme.spacing.xlarge,
   },
   title: {
-    fontSize: 32,
-    fontWeight: '800',
+    fontSize: 36,
+    fontWeight: '900',
     color: theme.colors.text,
     letterSpacing: -0.5,
+    marginBottom: 8,
   },
   subtitle: {
-    marginTop: 10,
+    marginTop: 6,
     color: theme.colors.textMuted,
-    fontSize: 15,
+    fontSize: 16,
     lineHeight: 22,
+    fontWeight: '500',
   },
 });

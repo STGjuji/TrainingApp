@@ -10,7 +10,7 @@ interface WorkoutCalendarProps {
   showWeekNumbers?: boolean;
 }
 
-const dayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 function formatMonthYear(date: Date) {
   return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
@@ -18,6 +18,7 @@ function formatMonthYear(date: Date) {
 
 function buildCalendarGrid(month: number, year: number) {
   const firstDay = new Date(year, month, 1).getDay();
+  const firstDayIndex = (firstDay + 6) % 7; // Monday-first week
   const totalDays = new Date(year, month + 1, 0).getDate();
   const weeks: Array<Array<number | null>> = [];
   let day = 1;
@@ -25,7 +26,7 @@ function buildCalendarGrid(month: number, year: number) {
   for (let week = 0; week < 6; week += 1) {
     const row: Array<number | null> = [];
     for (let weekday = 0; weekday < 7; weekday += 1) {
-      if ((week === 0 && weekday < firstDay) || day > totalDays) {
+      if ((week === 0 && weekday < firstDayIndex) || day > totalDays) {
         row.push(null);
       } else {
         row.push(day);

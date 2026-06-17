@@ -6,6 +6,22 @@ interface HomeScreenProps {
   navigation: any;
 }
 
+const CardEmoji: Record<string, string> = {
+  Workouts: '💪',
+  Meals: '🍽️',
+  Weight: '⚖️',
+  Progress: '📊',
+  Settings: '⚙️',
+};
+
+const CardColors: Record<string, string> = {
+  Workouts: theme.colors.card1,
+  Meals: theme.colors.card2,
+  Weight: theme.colors.card3,
+  Progress: theme.colors.card4,
+  Settings: theme.colors.card5,
+};
+
 export default function HomeScreen({ navigation }: HomeScreenProps) {
   const cards = [
     { label: 'Workouts', screen: 'Workouts' },
@@ -18,11 +34,20 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   return (
     <SafeAreaView style={styles.page}>
       <ScrollView contentContainerStyle={styles.content}>
-        <AppHeader title="Training App" subtitle="" />
-        <Text style={styles.description}>Tap a card to open any tracker or settings screen.</Text>
+        <AppHeader title="Training App" subtitle="Track your fitness journey" />
         <View style={styles.cardGrid}>
-          {cards.map((item) => (
-            <TouchableOpacity key={item.screen} style={styles.tile} onPress={() => navigation.navigate(item.screen)}>
+          {cards.map((item, index) => (
+            <TouchableOpacity
+              key={item.screen}
+              style={[
+                styles.tile,
+                { backgroundColor: CardColors[item.label] },
+                index % 2 === 0 ? { marginRight: theme.spacing.small } : {},
+              ]}
+              onPress={() => navigation.navigate(item.screen)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.emoji}>{CardEmoji[item.label]}</Text>
               <Text style={styles.tileTitle}>{item.label}</Text>
             </TouchableOpacity>
           ))}
@@ -34,24 +59,34 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: theme.colors.background },
-  content: { padding: theme.spacing.medium },
-  description: { color: theme.colors.textMuted, fontSize: 16, marginBottom: theme.spacing.medium },
-  cardGrid: { gap: theme.spacing.medium },
+  content: { padding: theme.spacing.medium, paddingBottom: theme.spacing.large },
+  cardGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: theme.spacing.medium,
+  },
   tile: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius,
+    width: '48%',
+    aspectRatio: 1,
+    borderRadius: 24,
     padding: theme.spacing.large,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
     shadowColor: theme.colors.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
-    shadowRadius: 24,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  emoji: {
+    fontSize: 48,
+    marginBottom: theme.spacing.medium,
   },
   tileTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.text,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#fff',
+    textAlign: 'center',
   },
 });

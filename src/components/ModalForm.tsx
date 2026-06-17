@@ -37,13 +37,13 @@ export default function ModalForm({ visible, title, onClose, onSubmit, children 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: theme.spacing.medium, borderBottomWidth: 1, borderBottomColor: theme.colors.border },
-  title: { fontSize: 24, fontWeight: '800', color: theme.colors.text },
-  closeBtn: { fontSize: 28, color: theme.colors.textMuted },
+  title: { fontSize: 28, fontWeight: '900', color: theme.colors.text, letterSpacing: -0.5 },
+  closeBtn: { fontSize: 32, color: theme.colors.textMuted, fontWeight: '600' },
   content: { flex: 1, padding: theme.spacing.medium },
   footer: { flexDirection: 'row', gap: theme.spacing.medium, padding: theme.spacing.medium, borderTopWidth: 1, borderTopColor: theme.colors.border },
-  button: { flex: 1, paddingVertical: theme.spacing.small + 2, borderRadius: theme.radius, alignItems: 'center' },
+  button: { flex: 1, paddingVertical: theme.spacing.small + 4, borderRadius: theme.radius, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
   cancelBtn: { backgroundColor: theme.colors.border },
   submitBtn: { backgroundColor: theme.colors.primary },
-  cancelText: { color: theme.colors.textMuted, fontWeight: '700', fontSize: 16 },
-  submitText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  cancelText: { color: theme.colors.textMuted, fontWeight: '800', fontSize: 16 },
+  submitText: { color: '#fff', fontWeight: '800', fontSize: 16 },
 });

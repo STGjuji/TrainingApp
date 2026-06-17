@@ -39,12 +39,12 @@ export default function FormInput({
 
 const styles = StyleSheet.create({
   container: { marginBottom: theme.spacing.medium },
-  label: { color: theme.colors.text, fontWeight: '600', marginBottom: 8, fontSize: 14 },
+  label: { color: theme.colors.text, fontWeight: '700', marginBottom: 8, fontSize: 14, letterSpacing: 0.3 },
   input: {
     backgroundColor: theme.colors.background,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: theme.colors.border,
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: theme.spacing.medium,
     paddingVertical: theme.spacing.small,
     color: theme.colors.text,
