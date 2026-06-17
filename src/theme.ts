@@ -11,6 +11,7 @@ export const theme = {
     border: '#334155',
     shadow: '#00000040',
     success: '#22c55e',
+    error: '#ef4444',
   },
   spacing: {
     small: 12,

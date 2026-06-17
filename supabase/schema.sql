@@ -11,6 +11,18 @@ create table if not exists workouts (
 
 alter table workouts enable row level security;
 
+-- Add completed_at column if missing to record when a workout was confirmed/completed
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name='workouts' AND column_name='completed_at'
+  ) THEN
+    ALTER TABLE workouts ADD COLUMN completed_at timestamptz;
+  END IF;
+END
+$$;
+
 DO $$
 BEGIN
   IF NOT EXISTS (
