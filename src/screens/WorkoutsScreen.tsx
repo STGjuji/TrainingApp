@@ -234,93 +234,89 @@ export default function WorkoutsScreen() {
 
   return (
     <SafeAreaView style={styles.page}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.containerContent} keyboardShouldPersistTaps="handled">
+      <View style={styles.container}>
         <AppHeader title="Workouts" subtitle="Track training sessions and plan your next move." />
-        <View style={styles.calendarHeaderRow}>
-          <View style={styles.calendarRowLeft}>
-            <Text style={styles.calendarLabel}>Calendar</Text>
-            <Text style={styles.weekInfo}>Week {getWeekNumber(selectedDate)}</Text>
+        <View style={styles.section}>
+          <View style={styles.calendarHeaderRow}>
+            <View style={styles.calendarRowLeft}>
+              <Text style={styles.calendarLabel}>Calendar</Text>
+              <Text style={styles.weekInfo}>Week {getWeekNumber(selectedDate)}</Text>
+            </View>
+            <View style={styles.calendarToggles}>
+              <Text style={styles.toggleLabel}>Collapse</Text>
+              <Switch value={calendarCollapsed} onValueChange={setCalendarCollapsed} />
+              <Text style={[styles.toggleLabel, { marginLeft: 12 }]}>System Picker</Text>
+              <Switch value={useSystemPicker} onValueChange={setUseSystemPicker} />
+            </View>
           </View>
-          <View style={styles.calendarToggles}>
-            <Text style={styles.toggleLabel}>Collapse</Text>
-            <Switch value={calendarCollapsed} onValueChange={setCalendarCollapsed} />
-            <Text style={[styles.toggleLabel, { marginLeft: 12 }]}>System Picker</Text>
-            <Switch value={useSystemPicker} onValueChange={setUseSystemPicker} />
-          </View>
+          {!calendarCollapsed && (
+            <WorkoutCalendar selectedDate={selectedDate} onDateChange={setSelectedDate} events={workoutEvents} />
+          )}
+          {errorMessage ? (
+            <View style={styles.messageBox}>
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
+          {successMessage ? (
+            <View style={styles.messageBox}>
+              <Text style={styles.successText}>{successMessage}</Text>
+            </View>
+          ) : null}
         </View>
-        {!calendarCollapsed && (
-          <WorkoutCalendar selectedDate={selectedDate} onDateChange={setSelectedDate} events={workoutEvents} />
-        )}
-        {errorMessage ? (
-          <View style={{ marginTop: theme.spacing.small }}>
-            <Text style={styles.errorText}>{errorMessage}</Text>
-          </View>
-        ) : null}
-        {successMessage ? (
-          <View style={{ marginTop: theme.spacing.small }}>
-            <Text style={{ color: theme.colors.primary, fontWeight: '800' }}>{successMessage}</Text>
-          </View>
-        ) : null}
-        <View style={styles.workoutsHeaderRow}>
-          <Text style={styles.dateSectionTitle}>Workouts on {selectedDate.toLocaleDateString()} — Week {getWeekNumber(selectedDate)}</Text>
+
+        <View style={styles.workoutsHeader}>
+          <Text style={styles.dateSectionTitle}>Workouts on {selectedDate.toLocaleDateString()}</Text>
           <View style={styles.selectionControls}>
             <TouchableOpacity onPress={() => { setSelectionMode((s) => !s); setSelectedIds([]); }} style={styles.selectionToggle}>
               <Text style={styles.selectionToggleText}>{selectionMode ? 'Cancel' : 'Select'}</Text>
             </TouchableOpacity>
             {selectionMode ? (
               <TouchableOpacity onPress={confirmSelected} style={[styles.bulkConfirmButton, selectedIds.length === 0 && styles.bulkConfirmDisabled]} disabled={selectedIds.length === 0}>
-                <Text style={styles.bulkConfirmText}>Confirm Selected ({selectedIds.length})</Text>
+                <Text style={styles.bulkConfirmText}>Confirm ({selectedIds.length})</Text>
               </TouchableOpacity>
             ) : null}
           </View>
         </View>
+
         <FlatList
           data={selectedWorkouts}
           keyExtractor={(item) => item.id}
           style={styles.list}
-          scrollEnabled={false}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
             <Card>
               <View style={styles.cardHeader}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                  {selectionMode ? (
-                    <TouchableOpacity onPress={() => {
-                      setSelectedIds((prev) => prev.includes(item.id) ? prev.filter((id) => id !== item.id) : [...prev, item.id]);
-                    }} style={[styles.selectionCheckbox, selectedIds.includes(item.id) && styles.selectionCheckboxOn]}>
-                      <Text style={styles.selectionCheckboxText}>{selectedIds.includes(item.id) ? '✓' : ''}</Text>
-                    </TouchableOpacity>
-                  ) : null}
-                  <Text style={styles.workoutTitle}>{item.title}</Text>
-                </View>
-                <View style={styles.headerRight}>
-                  <TouchableOpacity
-                    onPress={() => openEditWorkout(item)}
-                    style={styles.editButton}
-                  >
-                    <Text style={styles.editButtonText}>Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => deleteWorkout(item.id)}
-                    style={styles.deleteButton}
-                  >
-                    <Text style={styles.deleteButtonText}>Delete</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => toggleCompleted(item.id, item.completed)}
-                    style={[styles.confirmButton, item.completed && styles.confirmed]}
-                  >
-                    <Text style={[styles.confirmText, item.completed && styles.confirmedText]}>
-                      {item.completed ? 'Confirmed' : 'Confirm'}
-                    </Text>
-                  </TouchableOpacity>
+                <View style={styles.cardHeaderTop}>
+                  <View style={styles.headerLeft}>
+                    {selectionMode ? (
+                      <TouchableOpacity onPress={() => {
+                        setSelectedIds((prev) => prev.includes(item.id) ? prev.filter((id) => id !== item.id) : [...prev, item.id]);
+                      }} style={[styles.selectionCheckbox, selectedIds.includes(item.id) && styles.selectionCheckboxOn]}>
+                        <Text style={styles.selectionCheckboxText}>{selectedIds.includes(item.id) ? '✓' : ''}</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    <Text style={styles.workoutTitle}>{item.title}</Text>
+                  </View>
                   <Text style={[styles.status, item.completed ? styles.completed : styles.pending]}>
                     {item.completed ? 'Completed' : 'Planned'}
                   </Text>
                 </View>
+                <Text style={styles.workoutDate}>{formatDate(item.scheduled_at)}</Text>
               </View>
               <Text style={styles.workoutMeta}>{item.notes ?? 'No details added yet.'}</Text>
-              <Text style={styles.workoutDate}>{formatDate(item.scheduled_at)}{item.completed ? ` • Confirmed ${item.completed_at ? new Date(item.completed_at).toLocaleString() : ''}` : ''}</Text>
+              <View style={styles.actionRow}>
+                <TouchableOpacity onPress={() => openEditWorkout(item)} style={[styles.actionButton, styles.editButton]}>
+                  <Text style={styles.actionButtonText}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => deleteWorkout(item.id)} style={[styles.actionButton, styles.deleteButton]}>
+                  <Text style={styles.actionButtonText}>Delete</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => toggleCompleted(item.id, item.completed)} style={[styles.actionButton, styles.confirmButton, item.completed && styles.confirmed]}>
+                  <Text style={[styles.actionButtonText, item.completed && styles.confirmedText]}>
+                    {item.completed ? 'Confirmed' : 'Confirm'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </Card>
           )}
           ListEmptyComponent={
@@ -328,9 +324,9 @@ export default function WorkoutsScreen() {
               No workouts scheduled for this date. Add a planned workout below.
             </Text>
           }
+          ListFooterComponent={<PrimaryButton label="Add Workout" onPress={() => setModalVisible(true)} />}
         />
-        <PrimaryButton label="Add Workout" onPress={() => setModalVisible(true)} />
-      </ScrollView>
+      </View>
       <ModalForm
         visible={modalVisible}
         title={editingWorkoutId ? 'Edit Workout' : 'Add Workout'}
@@ -414,13 +410,21 @@ const styles = StyleSheet.create({
   selectionCheckbox: { width: 28, height: 28, borderRadius: 6, borderWidth: 1, borderColor: theme.colors.border, alignItems: 'center', justifyContent: 'center', marginRight: theme.spacing.small, backgroundColor: 'transparent' },
   selectionCheckboxOn: { backgroundColor: theme.colors.primary },
   selectionCheckboxText: { color: '#fff', fontWeight: '800' },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: theme.spacing.small },
-  headerRight: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end' },
-  editButton: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: theme.radius / 2, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.primaryLight, marginRight: theme.spacing.small },
+  section: { marginBottom: theme.spacing.large },
+  messageBox: { padding: theme.spacing.small, borderRadius: theme.radius, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border, marginTop: theme.spacing.small },
+  successText: { color: theme.colors.primary, fontWeight: '800' },
+  workoutsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.medium },
+  cardHeader: { marginBottom: theme.spacing.small },
+  cardHeaderTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.small },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: theme.spacing.small },
+  actionRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: theme.spacing.small },
+  actionButton: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: theme.radius / 2, minWidth: 92, alignItems: 'center' },
+  actionButtonText: { color: '#fff', fontWeight: '700' },
+  editButton: { backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.primaryLight, marginRight: theme.spacing.small },
   editButtonText: { color: theme.colors.text, fontWeight: '700' },
-  deleteButton: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: theme.radius / 2, backgroundColor: theme.colors.error, marginRight: theme.spacing.small },
+  deleteButton: { backgroundColor: theme.colors.error, marginRight: theme.spacing.small },
   deleteButtonText: { color: '#fff', fontWeight: '700' },
-  confirmButton: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: theme.radius / 2, backgroundColor: theme.colors.primary, marginRight: theme.spacing.small },
+  confirmButton: { backgroundColor: theme.colors.primary, marginRight: theme.spacing.small },
   confirmText: { color: '#fff', fontWeight: '700' },
   confirmed: { backgroundColor: theme.colors.success },
   confirmedText: { color: '#062b17' },
